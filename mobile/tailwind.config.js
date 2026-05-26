@@ -23,8 +23,8 @@ module.exports = {
         mint: "#B5D0B3",
       },
       fontFamily: {
-        display: ["Fraunces", "serif"],
-        sans: ["Inter", "sans-serif"],
+        display: ["Fraunces_600SemiBold", "serif"],
+        "display-medium": ["Fraunces_500Medium", "serif"],
       },
     },
   },

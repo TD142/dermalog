@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+
+import { usePhotosStore } from '@/features/photos/store';
+
+const CaptureScreen = () => {
+  const router = useRouter();
+  const addPhoto = usePhotosStore((s) => s.addPhoto);
+  const [busy, setBusy] = useState(false);
+
+  const pickFromCamera = async () => {
+    setBusy(true);
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Camera permission needed', 'Enable camera access in Settings.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        addPhoto(result.assets[0].uri);
+        router.back();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickFromLibrary = async () => {
+    setBusy(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        addPhoto(result.assets[0].uri);
+        router.back();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-sage-200">
+      <View className="flex-1 px-6 pt-12">
+        <Text className="text-4xl text-sage-900 font-display">New entry</Text>
+        <Text className="text-base text-sage-800 mt-2">
+          Take a photo of the area you want to track.
+        </Text>
+
+        <View className="flex-1 justify-center gap-3">
+          <Pressable
+            onPress={pickFromCamera}
+            disabled={busy}
+            className="bg-sage-900 rounded-2xl py-4 px-6 active:opacity-80 disabled:opacity-50"
+          >
+            <Text className="text-cream text-center text-lg font-display-medium">
+              Take photo
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={pickFromLibrary}
+            disabled={busy}
+            className="border border-sage-900 rounded-2xl py-4 px-6 active:opacity-80 disabled:opacity-50"
+          >
+            <Text className="text-sage-900 text-center text-lg font-display-medium">
+              Choose from library
+            </Text>
+          </Pressable>
+        </View>
+
+        <Pressable onPress={() => router.back()} className="pb-4">
+          <Text className="text-sage-700 text-center">Cancel</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default CaptureScreen;

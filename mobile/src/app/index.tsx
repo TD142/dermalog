@@ -1,98 +1,78 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Camera } from 'lucide-react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { usePhotosStore } from '@/features/photos/store';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+const dateLabel = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+}).format(new Date());
+
+const HomeScreen = () => {
+  const router = useRouter();
+  const photos = usePhotosStore((s) => s.photos);
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <SafeAreaView className="flex-1 bg-sage-200">
+      <View className="flex-1 px-6 pt-8">
+        <Text className="text-sage-700 text-sm uppercase tracking-widest">
+          {dateLabel}
+        </Text>
+        <Text className="text-5xl text-sage-900 font-display mt-1">
+          Dermalog
+        </Text>
+        <Text className="text-base text-sage-800 mt-2 max-w-xs leading-snug">
+          Track your skin over time. Capture, log, and see what changes.
+        </Text>
+
+        {photos.length === 0 ? (
+          <View className="flex-1 items-center justify-center">
+            <View className="bg-cream rounded-3xl px-8 py-10 items-center max-w-xs">
+              <View className="w-14 h-14 rounded-full bg-sage-100 items-center justify-center mb-4">
+                <Camera size={28} color="#3A453E" strokeWidth={1.5} />
+              </View>
+              <Text className="text-sage-900 text-lg font-display-medium">
+                No entries yet
+              </Text>
+              <Text className="text-sage-700 text-center text-sm mt-1">
+                Tap Capture to start tracking.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View className="flex-1">
+            <Text className="text-sage-800 text-xs uppercase tracking-widest mt-6 mb-3">
+              Recent entries
+            </Text>
+            <FlatList
+              data={photos}
+              keyExtractor={(p) => p.id}
+              numColumns={2}
+              columnWrapperClassName="gap-3"
+              contentContainerClassName="gap-3 pb-4"
+              renderItem={({ item }) => (
+                <View className="flex-1 aspect-square rounded-2xl overflow-hidden bg-cream">
+                  <Image source={{ uri: item.uri }} className="w-full h-full" />
+                </View>
+              )}
+            />
+          </View>
+        )}
+
+        <Pressable
+          onPress={() => router.push('/capture')}
+          className="bg-sage-900 rounded-2xl py-4 px-6 mb-4 active:opacity-80"
+        >
+          <Text className="text-cream text-center text-lg font-display-medium">
+            Capture
+          </Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
-}
+};
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
+export default HomeScreen;

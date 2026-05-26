@@ -1,22 +1,28 @@
 import '../global.css';
 
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import {
+  useFonts,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from '@expo-google-fonts/fraunces';
 
 const queryClient = new QueryClient();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const RootLayout = () => {
+  const [fontsLoaded] = useFonts({
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
+  });
+
+  if (!fontsLoaded) return null;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-        <AppTabs />
-      </ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }} />
     </QueryClientProvider>
   );
-}
+};
+
+export default RootLayout;
