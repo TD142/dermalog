@@ -23,5 +23,11 @@
 *.tfvars
 !*.tfvars.example
 
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
 # Misc
 *.tmp

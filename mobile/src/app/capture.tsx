@@ -1,52 +1,51 @@
-import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
-import { usePhotosStore } from '@/features/photos/store';
+import { useUploadPhoto } from '@/features/photos/api';
+
+const CONTENT_TYPE = 'image/jpeg';
 
 const CaptureScreen = () => {
   const router = useRouter();
-  const addPhoto = usePhotosStore((s) => s.addPhoto);
-  const [busy, setBusy] = useState(false);
+  const uploadPhoto = useUploadPhoto();
+
+  const handlePicked = async (localUri: string) => {
+    try {
+      await uploadPhoto.mutateAsync({ localUri, contentType: CONTENT_TYPE });
+      router.back();
+    } catch (err) {
+      Alert.alert('Upload failed', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
 
   const pickFromCamera = async () => {
-    setBusy(true);
-    try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Camera permission needed', 'Enable camera access in Settings.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]) {
-        addPhoto(result.assets[0].uri);
-        router.back();
-      }
-    } finally {
-      setBusy(false);
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Camera permission needed', 'Enable camera access in Settings.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await handlePicked(result.assets[0].uri);
     }
   };
 
   const pickFromLibrary = async () => {
-    setBusy(true);
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]) {
-        addPhoto(result.assets[0].uri);
-        router.back();
-      }
-    } finally {
-      setBusy(false);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await handlePicked(result.assets[0].uri);
     }
   };
+
+  const busy = uploadPhoto.isPending;
 
   return (
     <SafeAreaView className="flex-1 bg-sage-200">
@@ -63,7 +62,7 @@ const CaptureScreen = () => {
             className="bg-sage-900 rounded-2xl py-4 px-6 active:opacity-80 disabled:opacity-50"
           >
             <Text className="text-cream text-center text-lg font-display-medium">
-              Take photo
+              {busy ? 'Uploading…' : 'Take photo'}
             </Text>
           </Pressable>
 
@@ -78,7 +77,7 @@ const CaptureScreen = () => {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => router.back()} className="pb-4">
+        <Pressable onPress={() => router.back()} className="pb-4" disabled={busy}>
           <Text className="text-sage-700 text-center">Cancel</Text>
         </Pressable>
       </View>

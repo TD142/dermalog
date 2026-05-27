@@ -1,14 +1,14 @@
-import { FlatList, Image, Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Camera } from 'lucide-react-native';
+import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Camera } from "lucide-react-native";
 
-import { usePhotosStore } from '@/features/photos/store';
+import { usePhotosStore } from "@/features/photos/store";
 
-const dateLabel = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
+const dateLabel = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
 }).format(new Date());
 
 const HomeScreen = () => {
@@ -63,7 +63,7 @@ const HomeScreen = () => {
         )}
 
         <Pressable
-          onPress={() => router.push('/capture')}
+          onPress={() => router.push("/capture")}
           className="bg-sage-900 rounded-2xl py-4 px-6 mb-4 active:opacity-80"
         >
           <Text className="text-cream text-center text-lg font-display-medium">

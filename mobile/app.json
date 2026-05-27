@@ -41,7 +41,9 @@
           "photosPermission": "Dermalog needs access to your photos to track your skin over time.",
           "cameraPermission": "Dermalog needs camera access to capture photos of your skin."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

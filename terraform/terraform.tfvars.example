@@ -1,0 +1,6 @@
+aws_region   = "eu-west-2"
+aws_profile  = "dermalog"
+environment  = "dev"
+
+# S3 bucket names are globally unique. Pick something distinctive.
+photo_bucket_name = "dermalog-photos-dev-<your-suffix>"
