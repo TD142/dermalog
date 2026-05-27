@@ -13,11 +13,19 @@ public class PhotoUploadService(
 {
     private readonly PhotosOptions _options = options.Value;
 
-    public async Task<UploadUrlResponse> CreateUploadUrlAsync(
+    public async Task<ServiceResult<UploadUrlResponse>> CreateUploadUrlAsync(
         UploadUrlRequest request,
         CancellationToken ct
     )
     {
+        if (string.IsNullOrWhiteSpace(request.ContentType))
+        {
+            return ServiceResult<UploadUrlResponse>.Failure(
+                ServiceResultError.Validation,
+                "contentType is required"
+            );
+        }
+
         var key = $"photos/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}.jpg";
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.PresignedUrlTtlMinutes);
 
@@ -30,10 +38,27 @@ public class PhotoUploadService(
             ContentType = request.ContentType,
         };
 
-        var url = await s3.GetPreSignedURLAsync(presignRequest);
+        try
+        {
+            var url = await s3.GetPreSignedURLAsync(presignRequest);
 
-        logger.LogInformation("Issued upload URL for key {Key} expiring at {ExpiresAt}", key, expiresAt);
+            logger.LogInformation(
+                "Issued upload URL for key {Key} expiring at {ExpiresAt}",
+                key,
+                expiresAt
+            );
 
-        return new UploadUrlResponse(url, key, expiresAt);
+            return ServiceResult<UploadUrlResponse>.Success(
+                new UploadUrlResponse(url, key, expiresAt)
+            );
+        }
+        catch (AmazonS3Exception ex)
+        {
+            logger.LogError(ex, "S3 rejected pre-sign request for key {Key}", key);
+            return ServiceResult<UploadUrlResponse>.Failure(
+                ServiceResultError.External,
+                "Failed to issue upload URL"
+            );
+        }
     }
 }

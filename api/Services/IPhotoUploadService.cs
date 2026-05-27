@@ -4,5 +4,8 @@ namespace Dermalog.Api.Services;
 
 public interface IPhotoUploadService
 {
-    Task<UploadUrlResponse> CreateUploadUrlAsync(UploadUrlRequest request, CancellationToken ct);
+    Task<ServiceResult<UploadUrlResponse>> CreateUploadUrlAsync(
+        UploadUrlRequest request,
+        CancellationToken ct
+    );
 }
