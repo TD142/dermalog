@@ -54,11 +54,11 @@ const HomeScreen = () => {
               columnWrapperClassName="gap-3"
               contentContainerClassName="gap-3 pb-4"
               renderItem={({ item }) => {
-                const localUri = getLocalUri(item.objectKey);
+                const displayUri = getLocalUri(item.objectKey) ?? item.url;
                 return (
                   <View className="flex-1 aspect-square rounded-2xl overflow-hidden bg-cream items-center justify-center">
-                    {localUri ? (
-                      <Image source={{ uri: localUri }} className="w-full h-full" />
+                    {displayUri ? (
+                      <Image source={{ uri: displayUri }} className="w-full h-full" />
                     ) : (
                       <Camera size={28} color="#8FA395" strokeWidth={1.5} />
                     )}

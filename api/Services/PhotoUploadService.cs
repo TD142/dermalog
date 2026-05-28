@@ -53,4 +53,21 @@ public class PhotoUploadService(
             );
         }
     }
+
+    public Task<string> CreateDownloadUrlAsync(
+        string objectKey,
+        DateTimeOffset expiresAt,
+        CancellationToken ct
+    )
+    {
+        var presignRequest = new GetPreSignedUrlRequest
+        {
+            BucketName = _options.BucketName,
+            Key = objectKey,
+            Verb = HttpVerb.GET,
+            Expires = expiresAt.UtcDateTime,
+        };
+
+        return s3.GetPreSignedURLAsync(presignRequest);
+    }
 }

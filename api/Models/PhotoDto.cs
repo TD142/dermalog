@@ -5,5 +5,7 @@ public record PhotoDto(
     string ObjectKey,
     string ContentType,
     DateTimeOffset CapturedAt,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    string Url,
+    DateTimeOffset UrlExpiresAt
 );

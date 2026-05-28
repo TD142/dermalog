@@ -8,4 +8,10 @@ public interface IPhotoUploadService
         UploadUrlRequest request,
         CancellationToken ct
     );
+
+    Task<string> CreateDownloadUrlAsync(
+        string objectKey,
+        DateTimeOffset expiresAt,
+        CancellationToken ct
+    );
 }

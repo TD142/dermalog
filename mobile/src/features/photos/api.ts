@@ -20,6 +20,8 @@ export type Photo = {
   contentType: string;
   capturedAt: string;
   createdAt: string;
+  url: string;
+  urlExpiresAt: string;
 };
 
 const photosQueryKey = ['photos'] as const;
@@ -88,8 +90,14 @@ const fetchPhotos = async (): Promise<Photo[]> => {
   return response.json();
 };
 
+const THIRTEEN_MINUTES_MS = 13 * 60 * 1000;
+
 export const usePhotos = () =>
-  useQuery({ queryKey: photosQueryKey, queryFn: fetchPhotos });
+  useQuery({
+    queryKey: photosQueryKey,
+    queryFn: fetchPhotos,
+    staleTime: THIRTEEN_MINUTES_MS,
+  });
 
 type UploadPhotoArgs = {
   localUri: string;
