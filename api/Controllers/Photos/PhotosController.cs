@@ -7,7 +7,8 @@ namespace Dermalog.Api.Controllers.Photos;
 
 [ApiController]
 [Route("api/v1/photos")]
-public class PhotosController(IPhotoUploadService uploadService) : ControllerBase
+public class PhotosController(IPhotoUploadService uploadService, IPhotoService photoService)
+    : ControllerBase
 {
     [HttpPost("upload-url")]
     public async Task<Results<Ok<UploadUrlResponse>, ProblemHttpResult>> CreateUploadUrl(
@@ -16,21 +17,28 @@ public class PhotosController(IPhotoUploadService uploadService) : ControllerBas
     )
     {
         var result = await uploadService.CreateUploadUrlAsync(request, ct);
+        return result.IsSuccess ? TypedResults.Ok(result.Value!) : result.ToProblem();
+    }
 
-        if (result.IsSuccess)
-        {
-            return TypedResults.Ok(result.Value!);
-        }
+    [HttpPost]
+    public async Task<Results<Created<PhotoDto>, ProblemHttpResult>> Confirm(
+        ConfirmPhotoRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await photoService.ConfirmAsync(request, ct);
+        return result.IsSuccess
+            ? TypedResults.Created($"/api/v1/photos/{result.Value!.Id}", result.Value)
+            : result.ToProblem();
+    }
 
-        var status = result.ErrorKind switch
-        {
-            ServiceResultError.Validation => StatusCodes.Status400BadRequest,
-            ServiceResultError.NotFound => StatusCodes.Status404NotFound,
-            ServiceResultError.Conflict => StatusCodes.Status409Conflict,
-            ServiceResultError.External => StatusCodes.Status502BadGateway,
-            _ => StatusCodes.Status500InternalServerError,
-        };
-
-        return TypedResults.Problem(detail: result.Reason, statusCode: status);
+    [HttpGet]
+    public async Task<Results<Ok<IReadOnlyList<PhotoDto>>, ProblemHttpResult>> List(
+        [FromQuery] int take = 50,
+        CancellationToken ct = default
+    )
+    {
+        var result = await photoService.ListAsync(take, ct);
+        return result.IsSuccess ? TypedResults.Ok(result.Value!) : result.ToProblem();
     }
 }

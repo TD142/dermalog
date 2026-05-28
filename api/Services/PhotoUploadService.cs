@@ -18,14 +18,6 @@ public class PhotoUploadService(
         CancellationToken ct
     )
     {
-        if (string.IsNullOrWhiteSpace(request.ContentType))
-        {
-            return ServiceResult<UploadUrlResponse>.Failure(
-                ServiceResultError.Validation,
-                "contentType is required"
-            );
-        }
-
         var key = $"photos/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid():N}.jpg";
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.PresignedUrlTtlMinutes);
 

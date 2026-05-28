@@ -1,6 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { usePhotosStore } from './store';
+import { useLocalUriCache } from './store';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -14,9 +14,17 @@ type UploadUrlResponse = {
   expiresAt: string;
 };
 
-const requestUploadUrl = async (
-  contentType: string
-): Promise<UploadUrlResponse> => {
+export type Photo = {
+  id: string;
+  objectKey: string;
+  contentType: string;
+  capturedAt: string;
+  createdAt: string;
+};
+
+const photosQueryKey = ['photos'] as const;
+
+const requestUploadUrl = async (contentType: string): Promise<UploadUrlResponse> => {
   const response = await fetch(`${API_URL}/api/v1/photos/upload-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,20 +57,59 @@ const putPhotoToS3 = async (
   }
 };
 
+const confirmPhoto = async (
+  objectKey: string,
+  contentType: string
+): Promise<Photo> => {
+  const response = await fetch(`${API_URL}/api/v1/photos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      objectKey,
+      contentType,
+      capturedAt: new Date().toISOString(),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`confirm failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+const fetchPhotos = async (): Promise<Photo[]> => {
+  const response = await fetch(`${API_URL}/api/v1/photos`);
+
+  if (!response.ok) {
+    throw new Error(`list failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const usePhotos = () =>
+  useQuery({ queryKey: photosQueryKey, queryFn: fetchPhotos });
+
 type UploadPhotoArgs = {
   localUri: string;
   contentType: string;
 };
 
 export const useUploadPhoto = () => {
-  const addPhoto = usePhotosStore((s) => s.addPhoto);
+  const setLocalUri = useLocalUriCache((s) => s.setLocalUri);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ localUri, contentType }: UploadPhotoArgs) => {
       const { uploadUrl, objectKey } = await requestUploadUrl(contentType);
       await putPhotoToS3(uploadUrl, localUri, contentType);
-      addPhoto(localUri, objectKey);
-      return { objectKey };
+      const photo = await confirmPhoto(objectKey, contentType);
+      setLocalUri(photo.objectKey, localUri);
+      return photo;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: photosQueryKey });
     },
   });
 };
