@@ -1,5 +1,6 @@
 using Dermalog.Api.Models;
 using Dermalog.Api.Services;
+using Dermalog.Api.Services.AI;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,8 +8,11 @@ namespace Dermalog.Api.Controllers.Photos;
 
 [ApiController]
 [Route("api/v1/photos")]
-public class PhotosController(IPhotoUploadService uploadService, IPhotoService photoService)
-    : ControllerBase
+public class PhotosController(
+    IPhotoUploadService uploadService,
+    IPhotoService photoService,
+    IPhotoComparisonService comparisonService
+) : ControllerBase
 {
     [HttpPost("upload-url")]
     public async Task<Results<Ok<UploadUrlResponse>, ProblemHttpResult>> CreateUploadUrl(
@@ -39,6 +43,16 @@ public class PhotosController(IPhotoUploadService uploadService, IPhotoService p
     )
     {
         var result = await photoService.ListAsync(take, ct);
+        return result.IsSuccess ? TypedResults.Ok(result.Value!) : result.ToProblem();
+    }
+
+    [HttpPost("compare")]
+    public async Task<Results<Ok<ComparisonResult>, ProblemHttpResult>> Compare(
+        ComparePhotosRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await comparisonService.CompareAsync(request, ct);
         return result.IsSuccess ? TypedResults.Ok(result.Value!) : result.ToProblem();
     }
 }

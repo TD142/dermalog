@@ -2,17 +2,29 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import { useUploadPhoto } from '@/features/photos/api';
 
 const CONTENT_TYPE = 'image/jpeg';
+const MAX_DIMENSION = 1568;
+
+const normaliseToJpeg = async (rawUri: string): Promise<string> => {
+  const result = await ImageManipulator.manipulateAsync(
+    rawUri,
+    [{ resize: { width: MAX_DIMENSION } }],
+    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+  );
+  return result.uri;
+};
 
 const CaptureScreen = () => {
   const router = useRouter();
   const uploadPhoto = useUploadPhoto();
 
-  const handlePicked = async (localUri: string) => {
+  const handlePicked = async (rawUri: string) => {
     try {
+      const localUri = await normaliseToJpeg(rawUri);
       await uploadPhoto.mutateAsync({ localUri, contentType: CONTENT_TYPE });
       router.back();
     } catch (err) {

@@ -1,5 +1,7 @@
 using Amazon.S3;
+using Amazon.S3.Model;
 using Dermalog.Api.Data;
+using Dermalog.Api.Infrastructure.Bedrock;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,6 +22,7 @@ public class DermalogAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
         .Build();
 
     public Mock<IAmazonS3> S3Mock { get; } = new();
+    public Mock<IBedrockClient> BedrockMock { get; } = new();
 
     public Task InitializeAsync() => _postgres.StartAsync();
 
@@ -38,6 +41,21 @@ public class DermalogAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.RemoveAll<IAmazonS3>();
             services.AddSingleton(S3Mock.Object);
+
+            services.RemoveAll<IBedrockClient>();
+            services.AddSingleton(BedrockMock.Object);
         });
+    }
+
+    /// <summary>
+    /// Configure the S3 mock to return the given bytes when GetObjectAsync is called for objectKey.
+    /// </summary>
+    public void SetupS3Object(string objectKey, byte[] bytes)
+    {
+        S3Mock
+            .Setup(s =>
+                s.GetObjectAsync(It.IsAny<string>(), objectKey, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(() => new GetObjectResponse { ResponseStream = new MemoryStream(bytes) });
     }
 }

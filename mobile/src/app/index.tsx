@@ -69,14 +69,26 @@ const HomeScreen = () => {
           </View>
         )}
 
-        <Pressable
-          onPress={() => router.push('/capture')}
-          className="bg-sage-900 rounded-2xl py-4 px-6 mb-4 active:opacity-80"
-        >
-          <Text className="text-cream text-center text-lg font-display-medium">
-            Capture
-          </Text>
-        </Pressable>
+        <View className="flex-row gap-3 mb-4">
+          <Pressable
+            onPress={() => router.push('/capture')}
+            className="flex-1 bg-sage-900 rounded-2xl py-4 px-6 active:opacity-80"
+          >
+            <Text className="text-cream text-center text-lg font-display-medium">
+              Capture
+            </Text>
+          </Pressable>
+          {photos.length >= 2 && (
+            <Pressable
+              onPress={() => router.push('/compare')}
+              className="flex-1 border border-sage-900 rounded-2xl py-4 px-6 active:opacity-80"
+            >
+              <Text className="text-sage-900 text-center text-lg font-display-medium">
+                Compare
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );

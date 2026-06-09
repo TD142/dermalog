@@ -24,6 +24,21 @@ export type Photo = {
   urlExpiresAt: string;
 };
 
+export type SeverityTrend = 'Improved' | 'Similar' | 'Worsened';
+
+export type Observation = {
+  area: string;
+  change: string;
+  notes: string;
+};
+
+export type ComparisonResult = {
+  overallSummary: string;
+  observations: Observation[];
+  severityTrend: SeverityTrend;
+  generatedAt: string;
+};
+
 const photosQueryKey = ['photos'] as const;
 
 const requestUploadUrl = async (contentType: string): Promise<UploadUrlResponse> => {
@@ -103,6 +118,31 @@ type UploadPhotoArgs = {
   localUri: string;
   contentType: string;
 };
+
+type ComparePhotosArgs = {
+  beforeId: string;
+  afterId: string;
+};
+
+const comparePhotos = async ({
+  beforeId,
+  afterId,
+}: ComparePhotosArgs): Promise<ComparisonResult> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ beforeId, afterId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`compare failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const useComparePhotos = () =>
+  useMutation({ mutationFn: comparePhotos });
 
 export const useUploadPhoto = () => {
   const setLocalUri = useLocalUriCache((s) => s.setLocalUri);

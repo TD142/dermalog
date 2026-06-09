@@ -23,6 +23,7 @@ public abstract class IntegrationTestBase : IClassFixture<DermalogAppFactory>, I
         db.Photos.RemoveRange(db.Photos);
         await db.SaveChangesAsync();
         Factory.S3Mock.Invocations.Clear();
+        Factory.BedrockMock.Invocations.Clear();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
