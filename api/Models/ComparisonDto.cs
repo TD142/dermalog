@@ -1,15 +1,13 @@
-namespace Dermalog.Api.Models;
+using Dermalog.Api.Domain;
 
-public enum SeverityTrend
-{
-    Improved,
-    Similar,
-    Worsened,
-}
+namespace Dermalog.Api.Models;
 
 public record Observation(string Area, string Change, string Notes);
 
-public record ComparisonResult(
+public record ComparisonDto(
+    Guid Id,
+    PhotoDto Before,
+    PhotoDto After,
     string OverallSummary,
     IReadOnlyList<Observation> Observations,
     SeverityTrend SeverityTrend,

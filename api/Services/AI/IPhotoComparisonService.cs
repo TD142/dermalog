@@ -4,8 +4,10 @@ namespace Dermalog.Api.Services.AI;
 
 public interface IPhotoComparisonService
 {
-    Task<ServiceResult<ComparisonResult>> CompareAsync(
+    Task<ServiceResult<ComparisonDto>> CompareAsync(
         ComparePhotosRequest request,
         CancellationToken ct
     );
+
+    Task<ServiceResult<ComparisonDto?>> GetLatestAsync(CancellationToken ct);
 }

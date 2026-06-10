@@ -32,7 +32,10 @@ export type Observation = {
   notes: string;
 };
 
-export type ComparisonResult = {
+export type Comparison = {
+  id: string;
+  before: Photo;
+  after: Photo;
   overallSummary: string;
   observations: Observation[];
   severityTrend: SeverityTrend;
@@ -127,7 +130,7 @@ type ComparePhotosArgs = {
 const comparePhotos = async ({
   beforeId,
   afterId,
-}: ComparePhotosArgs): Promise<ComparisonResult> => {
+}: ComparePhotosArgs): Promise<Comparison> => {
   const response = await fetch(`${API_URL}/api/v1/photos/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -141,8 +144,39 @@ const comparePhotos = async ({
   return response.json();
 };
 
-export const useComparePhotos = () =>
-  useMutation({ mutationFn: comparePhotos });
+const latestComparisonQueryKey = ['comparison', 'latest'] as const;
+
+const fetchLatestComparison = async (): Promise<Comparison | null> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/comparisons/latest`);
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`latest comparison failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const useLatestComparison = () =>
+  useQuery({
+    queryKey: latestComparisonQueryKey,
+    queryFn: fetchLatestComparison,
+    staleTime: THIRTEEN_MINUTES_MS,
+  });
+
+export const useComparePhotos = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: comparePhotos,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+    },
+  });
+};
 
 export const useUploadPhoto = () => {
   const setLocalUri = useLocalUriCache((s) => s.setLocalUri);

@@ -2,10 +2,14 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Amazon.BedrockRuntime;
+using Dermalog.Api.Data;
+using Dermalog.Api.Domain;
 using Dermalog.Api.Infrastructure.Bedrock;
 using Dermalog.Api.Models;
 using Dermalog.Api.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace Dermalog.Api.Tests.Photos;
@@ -34,12 +38,39 @@ public class ComparePhotosTests(DermalogAppFactory factory) : IntegrationTestBas
         );
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<ComparisonResult>(JsonOptions);
+        var body = await response.Content.ReadFromJsonAsync<ComparisonDto>(JsonOptions);
         body.Should().NotBeNull();
-        body!.OverallSummary.Should().NotBeNullOrEmpty();
+        body!.Id.Should().NotBeEmpty();
+        body.Before.Id.Should().Be(beforeId);
+        body.After.Id.Should().Be(afterId);
+        body.Before.Url.Should().Be(PresignedUrl);
+        body.OverallSummary.Should().NotBeNullOrEmpty();
         body.Observations.Should().NotBeEmpty();
         body.SeverityTrend.Should().Be(SeverityTrend.Improved);
         body.GeneratedAt.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(-1));
+    }
+
+    [Fact]
+    public async Task Given_ValidIds_When_Compare_Then_PersistsComparisonRow()
+    {
+        SetupPresignAndS3();
+        SetupBedrockSuccess();
+
+        var beforeId = await CreatePhoto("photos/before.jpg");
+        var afterId = await CreatePhoto("photos/after.jpg");
+
+        await Client.PostAsJsonAsync(
+            "/api/v1/photos/compare",
+            new ComparePhotosRequest(beforeId, afterId)
+        );
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DermalogDbContext>();
+        var stored = await db.Comparisons.SingleAsync();
+        stored.BeforePhotoId.Should().Be(beforeId);
+        stored.AfterPhotoId.Should().Be(afterId);
+        stored.SeverityTrend.Should().Be(SeverityTrend.Improved);
+        stored.Observations.Should().NotBeEmpty();
     }
 
     [Fact]

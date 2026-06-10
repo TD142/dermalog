@@ -47,12 +47,26 @@ public class PhotosController(
     }
 
     [HttpPost("compare")]
-    public async Task<Results<Ok<ComparisonResult>, ProblemHttpResult>> Compare(
+    public async Task<Results<Ok<ComparisonDto>, ProblemHttpResult>> Compare(
         ComparePhotosRequest request,
         CancellationToken ct
     )
     {
         var result = await comparisonService.CompareAsync(request, ct);
         return result.IsSuccess ? TypedResults.Ok(result.Value!) : result.ToProblem();
+    }
+
+    [HttpGet("comparisons/latest")]
+    public async Task<Results<Ok<ComparisonDto>, NoContent, ProblemHttpResult>> GetLatestComparison(
+        CancellationToken ct
+    )
+    {
+        var result = await comparisonService.GetLatestAsync(ct);
+        if (!result.IsSuccess)
+        {
+            return result.ToProblem();
+        }
+
+        return result.Value is null ? TypedResults.NoContent() : TypedResults.Ok(result.Value);
     }
 }

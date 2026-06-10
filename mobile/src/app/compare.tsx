@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, ImageIcon } from 'lucide-react-native';
 
 import {
-  type ComparisonResult,
+  type Comparison,
   type Photo,
   type SeverityTrend,
   useComparePhotos,
@@ -40,7 +40,7 @@ const TrendChip = ({ trend }: { trend: SeverityTrend }) => {
   );
 };
 
-const ResultCard = ({ result }: { result: ComparisonResult }) => (
+const ResultCard = ({ result }: { result: Comparison }) => (
   <View className="bg-cream rounded-3xl p-5 mt-4">
     <TrendChip trend={result.severityTrend} />
     <Text className="text-sage-900 text-base mt-3 leading-snug">

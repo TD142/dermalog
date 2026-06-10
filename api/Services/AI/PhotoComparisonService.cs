@@ -6,6 +6,7 @@ using Dermalog.Api.Domain;
 using Dermalog.Api.Infrastructure.Bedrock;
 using Dermalog.Api.Models;
 using Dermalog.Api.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Dermalog.Api.Services.AI;
@@ -14,6 +15,7 @@ public class PhotoComparisonService(
     DermalogDbContext db,
     IAmazonS3 s3,
     IBedrockClient bedrock,
+    IPhotoUploadService storage,
     IOptions<BedrockOptions> bedrockOptions,
     IOptions<PhotosOptions> photoOptions,
     ILogger<PhotoComparisonService> logger
@@ -64,7 +66,7 @@ public class PhotoComparisonService(
         }
         """;
 
-    public async Task<ServiceResult<ComparisonResult>> CompareAsync(
+    public async Task<ServiceResult<ComparisonDto>> CompareAsync(
         ComparePhotosRequest request,
         CancellationToken ct
     )
@@ -74,7 +76,7 @@ public class PhotoComparisonService(
 
         if (before is null || after is null)
         {
-            return ServiceResult<ComparisonResult>.Failure(
+            return ServiceResult<ComparisonDto>.Failure(
                 ServiceResultError.NotFound,
                 "One or both photos were not found"
             );
@@ -90,7 +92,7 @@ public class PhotoComparisonService(
         catch (AmazonS3Exception ex)
         {
             logger.LogError(ex, "Failed to download photo bytes from S3 for comparison");
-            return ServiceResult<ComparisonResult>.Failure(
+            return ServiceResult<ComparisonDto>.Failure(
                 ServiceResultError.External,
                 "Failed to fetch photo bytes from storage"
             );
@@ -114,12 +116,17 @@ public class PhotoComparisonService(
                 ct: ct
             );
 
-            return ServiceResult<ComparisonResult>.Success(Map(input));
+            var comparison = BuildComparison(before, after, input);
+            db.Comparisons.Add(comparison);
+            await db.SaveChangesAsync(ct);
+
+            var dto = await MapToDtoAsync(comparison, before, after, ct);
+            return ServiceResult<ComparisonDto>.Success(dto);
         }
         catch (AmazonBedrockRuntimeException ex)
         {
             logger.LogError(ex, "Bedrock invocation failed");
-            return ServiceResult<ComparisonResult>.Failure(
+            return ServiceResult<ComparisonDto>.Failure(
                 ServiceResultError.External,
                 "Comparison model invocation failed"
             );
@@ -127,11 +134,112 @@ public class PhotoComparisonService(
         catch (InvalidOperationException ex)
         {
             logger.LogError(ex, "Bedrock returned an unexpected response shape");
-            return ServiceResult<ComparisonResult>.Failure(
+            return ServiceResult<ComparisonDto>.Failure(
                 ServiceResultError.External,
                 "Comparison model returned an unexpected response"
             );
         }
+    }
+
+    public async Task<ServiceResult<ComparisonDto?>> GetLatestAsync(CancellationToken ct)
+    {
+        var comparison = await db
+            .Comparisons.AsNoTracking()
+            .OrderByDescending(c => c.GeneratedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (comparison is null)
+        {
+            return ServiceResult<ComparisonDto?>.Success(null);
+        }
+
+        var photos = await db
+            .Photos.AsNoTracking()
+            .Where(p => p.Id == comparison.BeforePhotoId || p.Id == comparison.AfterPhotoId)
+            .ToListAsync(ct);
+
+        var before = photos.FirstOrDefault(p => p.Id == comparison.BeforePhotoId);
+        var after = photos.FirstOrDefault(p => p.Id == comparison.AfterPhotoId);
+
+        if (before is null || after is null)
+        {
+            logger.LogWarning(
+                "Latest comparison {Id} references a missing photo; skipping",
+                comparison.Id
+            );
+            return ServiceResult<ComparisonDto?>.Success(null);
+        }
+
+        var dto = await MapToDtoAsync(comparison, before, after, ct);
+        return ServiceResult<ComparisonDto?>.Success(dto);
+    }
+
+    private static Comparison BuildComparison(Photo before, Photo after, JsonElement input)
+    {
+        var summary = input.GetProperty("overallSummary").GetString() ?? "";
+        var trendStr = input.GetProperty("severityTrend").GetString() ?? "similar";
+        var trend = Enum.Parse<SeverityTrend>(trendStr, ignoreCase: true);
+
+        var observations = input
+            .GetProperty("observations")
+            .EnumerateArray()
+            .Select(o => new ComparisonObservation(
+                o.GetProperty("area").GetString() ?? "",
+                o.GetProperty("change").GetString() ?? "",
+                o.GetProperty("notes").GetString() ?? ""
+            ))
+            .ToList();
+
+        return Comparison.Create(
+            before.Id,
+            after.Id,
+            summary,
+            observations,
+            trend,
+            DateTimeOffset.UtcNow
+        );
+    }
+
+    private async Task<ComparisonDto> MapToDtoAsync(
+        Comparison comparison,
+        Photo before,
+        Photo after,
+        CancellationToken ct
+    )
+    {
+        var beforeDto = await MapPhotoAsync(before, ct);
+        var afterDto = await MapPhotoAsync(after, ct);
+
+        var observations = comparison
+            .Observations.Select(o => new Observation(o.Area, o.Change, o.Notes))
+            .ToList();
+
+        return new ComparisonDto(
+            comparison.Id,
+            beforeDto,
+            afterDto,
+            comparison.OverallSummary,
+            observations,
+            comparison.SeverityTrend,
+            comparison.GeneratedAt
+        );
+    }
+
+    private async Task<PhotoDto> MapPhotoAsync(Photo p, CancellationToken ct)
+    {
+        var urlExpiresAt = DateTimeOffset.UtcNow.AddMinutes(
+            photoOptions.Value.PresignedUrlTtlMinutes
+        );
+        var url = await storage.CreateDownloadUrlAsync(p.ObjectKey, urlExpiresAt, ct);
+        return new PhotoDto(
+            p.Id,
+            p.ObjectKey,
+            p.ContentType,
+            p.CapturedAt,
+            p.CreatedAt,
+            url,
+            urlExpiresAt
+        );
     }
 
     private async Task<BedrockImage> DownloadAsync(Photo photo, CancellationToken ct)
@@ -144,24 +252,5 @@ public class PhotoComparisonService(
         using var ms = new MemoryStream();
         await response.ResponseStream.CopyToAsync(ms, ct);
         return new BedrockImage(photo.ContentType, ms.ToArray());
-    }
-
-    private static ComparisonResult Map(JsonElement input)
-    {
-        var summary = input.GetProperty("overallSummary").GetString() ?? "";
-        var trendStr = input.GetProperty("severityTrend").GetString() ?? "similar";
-        var trend = Enum.Parse<SeverityTrend>(trendStr, ignoreCase: true);
-
-        var observations = input
-            .GetProperty("observations")
-            .EnumerateArray()
-            .Select(o => new Observation(
-                o.GetProperty("area").GetString() ?? "",
-                o.GetProperty("change").GetString() ?? "",
-                o.GetProperty("notes").GetString() ?? ""
-            ))
-            .ToList();
-
-        return new ComparisonResult(summary, observations, trend, DateTimeOffset.UtcNow);
     }
 }
