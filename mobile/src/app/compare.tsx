@@ -15,30 +15,11 @@ import { ArrowLeft, ImageIcon } from 'lucide-react-native';
 import {
   type Comparison,
   type Photo,
-  type SeverityTrend,
   useComparePhotos,
   usePhotos,
 } from '@/features/photos/api';
+import { TrendChip } from '@/features/photos/components/trend-chip';
 import { useLocalUriCache } from '@/features/photos/store';
-
-const trendStyles: Record<SeverityTrend, { bg: string; text: string }> = {
-  Improved: { bg: 'bg-mint', text: 'text-sage-900' },
-  Similar: { bg: 'bg-peach', text: 'text-sage-900' },
-  Worsened: { bg: 'bg-coral', text: 'text-cream' },
-};
-
-const TrendChip = ({ trend }: { trend: SeverityTrend }) => {
-  const style = trendStyles[trend];
-  return (
-    <View className={`self-start px-3 py-1 rounded-full ${style.bg}`}>
-      <Text
-        className={`text-xs uppercase tracking-widest font-display-medium ${style.text}`}
-      >
-        {trend}
-      </Text>
-    </View>
-  );
-};
 
 const ResultCard = ({ result }: { result: Comparison }) => (
   <View className="bg-cream rounded-3xl p-5 mt-4">
