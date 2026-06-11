@@ -39,6 +39,7 @@ builder.Services.AddDbContext<DermalogDbContext>(opts =>
 
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IPhotoComparisonService, PhotoComparisonService>();
+builder.Services.AddScoped<IInsightService, InsightService>();
 
 var app = builder.Build();
 

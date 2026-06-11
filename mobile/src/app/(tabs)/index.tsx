@@ -1,13 +1,21 @@
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { type Comparison, type Photo, useComparisons, usePhotos } from '@/features/photos/api';
+import {
+  type Comparison,
+  type Insight,
+  type Photo,
+  useComparisons,
+  useInsight,
+  usePhotos,
+} from '@/features/photos/api';
 import { ComparisonsList } from '@/features/photos/components/comparisons-list';
 import {
   EmptyState,
   ErrorState,
   NoComparisonPrompt,
 } from '@/features/photos/components/dashboard-states';
+import { InsightCard } from '@/features/photos/components/insight-card';
 import { useLocalUriCache } from '@/features/photos/store';
 
 const dateLabel = new Intl.DateTimeFormat('en-GB', {
@@ -23,6 +31,7 @@ const DashboardBody = ({
   isError,
   photos,
   comparisons,
+  insight,
   getLocalUri,
   onRetry,
 }: {
@@ -30,6 +39,7 @@ const DashboardBody = ({
   isError: boolean;
   photos: Photo[];
   comparisons: Comparison[];
+  insight: Insight | null;
   getLocalUri: LocalUriResolver;
   onRetry: () => void;
 }) => {
@@ -54,20 +64,27 @@ const DashboardBody = ({
       </View>
     );
   }
-  return comparisons.length > 0 ? (
-    <ComparisonsList comparisons={comparisons} getLocalUri={getLocalUri} />
-  ) : (
-    <NoComparisonPrompt photos={photos} />
+  return (
+    <View className="gap-4">
+      {insight && <InsightCard insight={insight} />}
+      {comparisons.length > 0 ? (
+        <ComparisonsList comparisons={comparisons} getLocalUri={getLocalUri} />
+      ) : (
+        <NoComparisonPrompt photos={photos} />
+      )}
+    </View>
   );
 };
 
 const HomeScreen = () => {
   const photosQuery = usePhotos();
   const comparisonsQuery = useComparisons();
+  const insightQuery = useInsight();
   const getLocalUri = useLocalUriCache((s) => s.getLocalUri);
 
   const photos = photosQuery.data ?? [];
   const comparisons = comparisonsQuery.data ?? [];
+  const insight = insightQuery.data ?? null;
 
   const isLoading = photosQuery.isLoading || comparisonsQuery.isLoading;
   const isError = photosQuery.isError || comparisonsQuery.isError;
@@ -94,6 +111,7 @@ const HomeScreen = () => {
             isError={isError}
             photos={photos}
             comparisons={comparisons}
+            insight={insight}
             getLocalUri={getLocalUri}
             onRetry={retry}
           />

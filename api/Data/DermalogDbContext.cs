@@ -7,6 +7,7 @@ public class DermalogDbContext(DbContextOptions<DermalogDbContext> options) : Db
 {
     public DbSet<Photo> Photos => Set<Photo>();
     public DbSet<Comparison> Comparisons => Set<Comparison>();
+    public DbSet<Insight> Insights => Set<Insight>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

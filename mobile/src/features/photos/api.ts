@@ -44,7 +44,15 @@ export type Comparison = {
   isComplete: boolean;
 };
 
+export type Insight = {
+  headline: string;
+  body: string;
+  generatedAt: string;
+  basisComparisonCount: number;
+};
+
 const photosQueryKey = ['photos'] as const;
+const insightQueryKey = ['insight'] as const;
 
 const requestUploadUrl = async (contentType: string): Promise<UploadUrlResponse> => {
   const response = await fetch(`${API_URL}/api/v1/photos/upload-url`, {
@@ -188,6 +196,27 @@ export const useComparisons = () =>
     staleTime: THIRTEEN_MINUTES_MS,
   });
 
+const fetchInsight = async (): Promise<Insight | null> => {
+  const response = await fetch(`${API_URL}/api/v1/insight`);
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`insight failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const useInsight = () =>
+  useQuery({
+    queryKey: insightQueryKey,
+    queryFn: fetchInsight,
+    staleTime: THIRTEEN_MINUTES_MS,
+  });
+
 type UpdateComparisonArgs = {
   id: string;
   label?: string;
@@ -220,6 +249,7 @@ export const useUpdateComparison = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
       queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+      queryClient.invalidateQueries({ queryKey: insightQueryKey });
     },
   });
 };
@@ -242,6 +272,7 @@ export const useDeleteComparison = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
       queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+      queryClient.invalidateQueries({ queryKey: insightQueryKey });
     },
   });
 };
@@ -254,6 +285,7 @@ export const useComparePhotos = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
       queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
+      queryClient.invalidateQueries({ queryKey: insightQueryKey });
     },
   });
 };
