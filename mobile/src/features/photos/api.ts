@@ -40,6 +40,8 @@ export type Comparison = {
   observations: Observation[];
   severityTrend: SeverityTrend;
   generatedAt: string;
+  label: string | null;
+  isComplete: boolean;
 };
 
 const photosQueryKey = ['photos'] as const;
@@ -167,6 +169,83 @@ export const useLatestComparison = () =>
     staleTime: THIRTEEN_MINUTES_MS,
   });
 
+const comparisonsQueryKey = ['comparisons'] as const;
+
+const fetchComparisons = async (): Promise<Comparison[]> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/comparisons`);
+
+  if (!response.ok) {
+    throw new Error(`comparisons failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const useComparisons = () =>
+  useQuery({
+    queryKey: comparisonsQueryKey,
+    queryFn: fetchComparisons,
+    staleTime: THIRTEEN_MINUTES_MS,
+  });
+
+type UpdateComparisonArgs = {
+  id: string;
+  label?: string;
+  isComplete?: boolean;
+};
+
+const updateComparison = async ({
+  id,
+  label,
+  isComplete,
+}: UpdateComparisonArgs): Promise<Comparison> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/comparisons/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label, isComplete }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`update comparison failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const useUpdateComparison = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateComparison,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
+      queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+    },
+  });
+};
+
+const deleteComparison = async (id: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/comparisons/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`delete comparison failed: ${response.status}`);
+  }
+};
+
+export const useDeleteComparison = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteComparison,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
+      queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+    },
+  });
+};
+
 export const useComparePhotos = () => {
   const queryClient = useQueryClient();
 
@@ -174,6 +253,7 @@ export const useComparePhotos = () => {
     mutationFn: comparePhotos,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: latestComparisonQueryKey });
+      queryClient.invalidateQueries({ queryKey: comparisonsQueryKey });
     },
   });
 };

@@ -9,8 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, ImageIcon } from 'lucide-react-native';
+import { Camera, ImageIcon } from 'lucide-react-native';
 
 import {
   type Comparison,
@@ -75,8 +74,24 @@ const PhotoSlot = ({
   );
 };
 
+const NeedMorePhotos = () => (
+  <View className="flex-1 items-center justify-center">
+    <View className="bg-cream rounded-3xl px-8 py-10 items-center max-w-xs">
+      <View className="w-14 h-14 rounded-full bg-sage-100 items-center justify-center mb-4">
+        <Camera size={28} color="#3A453E" strokeWidth={1.5} />
+      </View>
+      <Text className="text-sage-900 text-lg font-display-medium text-center">
+        Two photos needed
+      </Text>
+      <Text className="text-sage-700 text-center text-sm mt-1">
+        Capture at least two photos of the same area, then come back to compare
+        them.
+      </Text>
+    </View>
+  </View>
+);
+
 const CompareScreen = () => {
-  const router = useRouter();
   const { data: photos = [] } = usePhotos();
   const compare = useComparePhotos();
   const getLocalUri = useLocalUriCache((s) => s.getLocalUri);
@@ -113,38 +128,32 @@ const CompareScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-sage-200">
-      <ScrollView contentContainerClassName="px-6 pt-4 pb-12">
-        <Pressable
-          onPress={() => router.back()}
-          className="flex-row items-center mb-2"
-        >
-          <ArrowLeft size={20} color="#3A453E" strokeWidth={1.5} />
-          <Text className="text-sage-900 ml-1">Back</Text>
-        </Pressable>
-
-        <Text className="text-4xl text-sage-900 font-display mt-2">Compare</Text>
+    <SafeAreaView edges={['top']} className="flex-1 bg-sage-200">
+      <ScrollView contentContainerClassName="px-6 pt-8 pb-12 grow">
+        <Text className="text-4xl text-sage-900 font-display">Compare</Text>
         <Text className="text-base text-sage-800 mt-1">
           Pick two photos to see what&apos;s changed.
         </Text>
 
-        <View className="flex-row gap-3 mt-6">
-          <PhotoSlot
-            label="Before"
-            photo={before}
-            localUri={before ? getLocalUri(before.objectKey) : undefined}
-            onClear={() => setBeforeId(undefined)}
-          />
-          <PhotoSlot
-            label="After"
-            photo={after}
-            localUri={after ? getLocalUri(after.objectKey) : undefined}
-            onClear={() => setAfterId(undefined)}
-          />
-        </View>
-
-        {photos.length > 0 && (
+        {photos.length < 2 ? (
+          <NeedMorePhotos />
+        ) : (
           <>
+            <View className="flex-row gap-3 mt-6">
+              <PhotoSlot
+                label="Before"
+                photo={before}
+                localUri={before ? getLocalUri(before.objectKey) : undefined}
+                onClear={() => setBeforeId(undefined)}
+              />
+              <PhotoSlot
+                label="After"
+                photo={after}
+                localUri={after ? getLocalUri(after.objectKey) : undefined}
+                onClear={() => setAfterId(undefined)}
+              />
+            </View>
+
             <Text className="text-sage-800 text-xs uppercase tracking-widest mt-6 mb-2">
               Your photos
             </Text>
@@ -174,37 +183,37 @@ const CompareScreen = () => {
                 );
               }}
             />
+
+            <Pressable
+              onPress={onCompare}
+              disabled={!canCompare || compare.isPending}
+              className="bg-sage-900 rounded-2xl py-4 px-6 mt-6 active:opacity-80 disabled:opacity-40"
+            >
+              <Text className="text-cream text-center text-lg font-display-medium">
+                {compare.isPending ? 'Comparing…' : 'Compare'}
+              </Text>
+            </Pressable>
+
+            {compare.isPending && (
+              <View className="items-center mt-6">
+                <ActivityIndicator color="#3A453E" />
+                <Text className="text-sage-700 text-sm mt-2">
+                  Reading your photos…
+                </Text>
+              </View>
+            )}
+
+            {compare.isError && (
+              <View className="bg-coral/20 rounded-2xl p-4 mt-4">
+                <Text className="text-sage-900">
+                  Couldn&apos;t compare those photos. Try again.
+                </Text>
+              </View>
+            )}
+
+            {compare.data && <ResultCard result={compare.data} />}
           </>
         )}
-
-        <Pressable
-          onPress={onCompare}
-          disabled={!canCompare || compare.isPending}
-          className="bg-sage-900 rounded-2xl py-4 px-6 mt-6 active:opacity-80 disabled:opacity-40"
-        >
-          <Text className="text-cream text-center text-lg font-display-medium">
-            {compare.isPending ? 'Comparing…' : 'Compare'}
-          </Text>
-        </Pressable>
-
-        {compare.isPending && (
-          <View className="items-center mt-6">
-            <ActivityIndicator color="#3A453E" />
-            <Text className="text-sage-700 text-sm mt-2">
-              Reading your photos…
-            </Text>
-          </View>
-        )}
-
-        {compare.isError && (
-          <View className="bg-coral/20 rounded-2xl p-4 mt-4">
-            <Text className="text-sage-900">
-              Couldn&apos;t compare those photos. Try again.
-            </Text>
-          </View>
-        )}
-
-        {compare.data && <ResultCard result={compare.data} />}
       </ScrollView>
     </SafeAreaView>
   );

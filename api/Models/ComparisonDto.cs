@@ -11,5 +11,9 @@ public record ComparisonDto(
     string OverallSummary,
     IReadOnlyList<Observation> Observations,
     SeverityTrend SeverityTrend,
-    DateTimeOffset GeneratedAt
+    DateTimeOffset GeneratedAt,
+    string? Label,
+    bool IsComplete
 );
+
+public record UpdateComparisonRequest(string? Label, bool? IsComplete);

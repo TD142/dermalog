@@ -8,10 +8,17 @@ public class Comparison
     public string OverallSummary { get; private set; } = default!;
     public IReadOnlyList<ComparisonObservation> Observations { get; private set; } = [];
     public SeverityTrend SeverityTrend { get; private set; }
+    public string? Label { get; private set; }
+    public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset GeneratedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     private Comparison() { }
+
+    public void SetLabel(string? label) =>
+        Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
+
+    public void SetComplete(bool complete) => CompletedAt = complete ? DateTimeOffset.UtcNow : null;
 
     public static Comparison Create(
         Guid beforePhotoId,

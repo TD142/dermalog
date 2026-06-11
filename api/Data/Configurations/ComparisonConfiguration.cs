@@ -24,6 +24,10 @@ public class ComparisonConfiguration : IEntityTypeConfiguration<Comparison>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Property(c => c.Label).HasMaxLength(100);
+
+        builder.Property(c => c.CompletedAt);
+
         builder.Property(c => c.GeneratedAt).IsRequired();
 
         builder.Property(c => c.CreatedAt).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP");

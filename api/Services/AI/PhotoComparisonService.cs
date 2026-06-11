@@ -174,6 +174,109 @@ public class PhotoComparisonService(
         return ServiceResult<ComparisonDto?>.Success(dto);
     }
 
+    public async Task<ServiceResult<IReadOnlyList<ComparisonDto>>> GetAllAsync(CancellationToken ct)
+    {
+        var comparisons = await db
+            .Comparisons.AsNoTracking()
+            .OrderByDescending(c => c.GeneratedAt)
+            .ToListAsync(ct);
+
+        if (comparisons.Count == 0)
+        {
+            return ServiceResult<IReadOnlyList<ComparisonDto>>.Success([]);
+        }
+
+        var photoIds = comparisons
+            .SelectMany(c => new[] { c.BeforePhotoId, c.AfterPhotoId })
+            .Distinct()
+            .ToList();
+
+        var photos = await db
+            .Photos.AsNoTracking()
+            .Where(p => photoIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+
+        var dtos = new List<ComparisonDto>(comparisons.Count);
+        foreach (var comparison in comparisons)
+        {
+            if (
+                !photos.TryGetValue(comparison.BeforePhotoId, out var before)
+                || !photos.TryGetValue(comparison.AfterPhotoId, out var after)
+            )
+            {
+                logger.LogWarning(
+                    "Comparison {Id} references a missing photo; skipping",
+                    comparison.Id
+                );
+                continue;
+            }
+
+            dtos.Add(await MapToDtoAsync(comparison, before, after, ct));
+        }
+
+        return ServiceResult<IReadOnlyList<ComparisonDto>>.Success(dtos);
+    }
+
+    public async Task<ServiceResult<ComparisonDto>> UpdateAsync(
+        Guid id,
+        string? label,
+        bool? isComplete,
+        CancellationToken ct
+    )
+    {
+        var comparison = await db.Comparisons.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (comparison is null)
+        {
+            return ServiceResult<ComparisonDto>.Failure(
+                ServiceResultError.NotFound,
+                "Comparison not found"
+            );
+        }
+
+        if (label is not null)
+        {
+            comparison.SetLabel(label);
+        }
+
+        if (isComplete is not null)
+        {
+            comparison.SetComplete(isComplete.Value);
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var before = await db
+            .Photos.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == comparison.BeforePhotoId, ct);
+        var after = await db
+            .Photos.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == comparison.AfterPhotoId, ct);
+
+        if (before is null || after is null)
+        {
+            return ServiceResult<ComparisonDto>.Failure(
+                ServiceResultError.External,
+                "Comparison references a missing photo"
+            );
+        }
+
+        var dto = await MapToDtoAsync(comparison, before, after, ct);
+        return ServiceResult<ComparisonDto>.Success(dto);
+    }
+
+    public async Task<ServiceResult<bool>> DeleteAsync(Guid id, CancellationToken ct)
+    {
+        var comparison = await db.Comparisons.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (comparison is null)
+        {
+            return ServiceResult<bool>.Failure(ServiceResultError.NotFound, "Comparison not found");
+        }
+
+        db.Comparisons.Remove(comparison);
+        await db.SaveChangesAsync(ct);
+        return ServiceResult<bool>.Success(true);
+    }
+
     private static Comparison BuildComparison(Photo before, Photo after, JsonElement input)
     {
         var summary = input.GetProperty("overallSummary").GetString() ?? "";
@@ -221,7 +324,9 @@ public class PhotoComparisonService(
             comparison.OverallSummary,
             observations,
             comparison.SeverityTrend,
-            comparison.GeneratedAt
+            comparison.GeneratedAt,
+            comparison.Label,
+            comparison.CompletedAt is not null
         );
     }
 
