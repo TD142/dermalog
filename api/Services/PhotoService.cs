@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Dermalog.Api.Data;
 using Dermalog.Api.Domain;
 using Dermalog.Api.Models;
@@ -8,7 +9,7 @@ namespace Dermalog.Api.Services;
 
 public class PhotoService(
     DermalogDbContext db,
-    IPhotoUploadService storage,
+    IPhotoStorageService storage,
     IOptions<PhotosOptions> options,
     ILogger<PhotoService> logger
 ) : IPhotoService
@@ -71,6 +72,45 @@ public class PhotoService(
         }
 
         return ServiceResult<IReadOnlyList<PhotoDto>>.Success(dtos);
+    }
+
+    public async Task<ServiceResult<bool>> DeleteAsync(Guid id, CancellationToken ct)
+    {
+        var photo = await db.Photos.FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (photo is null)
+        {
+            return ServiceResult<bool>.Failure(ServiceResultError.NotFound, "Photo not found");
+        }
+
+        var referenced = await db.Comparisons.AnyAsync(
+            c => c.BeforePhotoId == id || c.AfterPhotoId == id,
+            ct
+        );
+        if (referenced)
+        {
+            return ServiceResult<bool>.Failure(
+                ServiceResultError.Conflict,
+                "Photo is used in a comparison and can't be deleted"
+            );
+        }
+
+        try
+        {
+            await storage.DeleteObjectAsync(photo.ObjectKey, ct);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            logger.LogError(ex, "Failed to delete S3 object {Key}", photo.ObjectKey);
+            return ServiceResult<bool>.Failure(
+                ServiceResultError.External,
+                "Failed to delete photo from storage"
+            );
+        }
+
+        db.Photos.Remove(photo);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Deleted photo {Id}", id);
+        return ServiceResult<bool>.Success(true);
     }
 
     private async Task<PhotoDto> MapToDtoAsync(Photo p, CancellationToken ct)

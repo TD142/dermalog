@@ -30,7 +30,7 @@ builder.Services.AddAWSService<IAmazonBedrockRuntime>();
 builder.Services.Configure<PhotosOptions>(builder.Configuration.GetSection("Photos"));
 builder.Services.Configure<BedrockOptions>(builder.Configuration.GetSection("Bedrock"));
 
-builder.Services.AddSingleton<IPhotoUploadService, PhotoUploadService>();
+builder.Services.AddSingleton<IPhotoStorageService, PhotoStorageService>();
 builder.Services.AddSingleton<IBedrockClient, BedrockClient>();
 
 builder.Services.AddDbContext<DermalogDbContext>(opts =>

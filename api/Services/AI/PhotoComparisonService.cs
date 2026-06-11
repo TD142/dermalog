@@ -15,7 +15,7 @@ public class PhotoComparisonService(
     DermalogDbContext db,
     IAmazonS3 s3,
     IBedrockClient bedrock,
-    IPhotoUploadService storage,
+    IPhotoStorageService storage,
     IOptions<BedrockOptions> bedrockOptions,
     IOptions<PhotosOptions> photoOptions,
     ILogger<PhotoComparisonService> logger

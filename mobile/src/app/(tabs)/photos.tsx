@@ -15,12 +15,14 @@ const PhotosBody = ({
   photos,
   getLocalUri,
   onRetry,
+  onOpen,
 }: {
   isLoading: boolean;
   isError: boolean;
   photos: Photo[];
   getLocalUri: LocalUriResolver;
   onRetry: () => void;
+  onOpen: (id: string) => void;
 }) => {
   if (isLoading) {
     return (
@@ -61,13 +63,16 @@ const PhotosBody = ({
       renderItem={({ item }) => {
         const displayUri = getLocalUri(item.objectKey) ?? item.url;
         return (
-          <View className="flex-1 aspect-square rounded-2xl overflow-hidden bg-cream items-center justify-center">
+          <Pressable
+            onPress={() => onOpen(item.id)}
+            className="flex-1 aspect-square rounded-2xl overflow-hidden bg-cream items-center justify-center active:opacity-80"
+          >
             {displayUri ? (
               <Image source={{ uri: displayUri }} className="w-full h-full" />
             ) : (
               <Camera size={28} color="#8FA395" strokeWidth={1.5} />
             )}
-          </View>
+          </Pressable>
         );
       }}
     />
@@ -93,6 +98,7 @@ const PhotosScreen = () => {
           photos={photos}
           getLocalUri={getLocalUri}
           onRetry={refetch}
+          onOpen={(id) => router.navigate(`/photo/${id}`)}
         />
 
         {photos.length >= 2 && (

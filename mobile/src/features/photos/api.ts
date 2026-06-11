@@ -127,6 +127,27 @@ export const usePhotos = () =>
     staleTime: THIRTEEN_MINUTES_MS,
   });
 
+const deletePhoto = async (id: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/api/v1/photos/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`delete photo failed: ${response.status}`);
+  }
+};
+
+export const useDeletePhoto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deletePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: photosQueryKey });
+    },
+  });
+};
+
 type UploadPhotoArgs = {
   localUri: string;
   contentType: string;

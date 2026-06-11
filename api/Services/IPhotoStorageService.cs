@@ -2,7 +2,7 @@ using Dermalog.Api.Models;
 
 namespace Dermalog.Api.Services;
 
-public interface IPhotoUploadService
+public interface IPhotoStorageService
 {
     Task<ServiceResult<UploadUrlResponse>> CreateUploadUrlAsync(
         UploadUrlRequest request,
@@ -14,4 +14,6 @@ public interface IPhotoUploadService
         DateTimeOffset expiresAt,
         CancellationToken ct
     );
+
+    Task DeleteObjectAsync(string objectKey, CancellationToken ct);
 }

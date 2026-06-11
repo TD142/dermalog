@@ -5,11 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace Dermalog.Api.Services;
 
-public class PhotoUploadService(
+public class PhotoStorageService(
     IAmazonS3 s3,
     IOptions<PhotosOptions> options,
-    ILogger<PhotoUploadService> logger
-) : IPhotoUploadService
+    ILogger<PhotoStorageService> logger
+) : IPhotoStorageService
 {
     private readonly PhotosOptions _options = options.Value;
 
@@ -69,5 +69,11 @@ public class PhotoUploadService(
         };
 
         return s3.GetPreSignedURLAsync(presignRequest);
+    }
+
+    public async Task DeleteObjectAsync(string objectKey, CancellationToken ct)
+    {
+        await s3.DeleteObjectAsync(_options.BucketName, objectKey, ct);
+        logger.LogInformation("Deleted S3 object {Key}", objectKey);
     }
 }
