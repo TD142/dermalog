@@ -9,6 +9,7 @@ public class BedrockClient(IAmazonBedrockRuntime bedrock, ILogger<BedrockClient>
     : IBedrockClient
 {
     private const int MaxTokens = 2048;
+    private const double Temperature = 0d;
 
     public async Task<JsonElement> InvokeWithToolAsync(
         string modelId,
@@ -63,8 +64,7 @@ public class BedrockClient(IAmazonBedrockRuntime bedrock, ILogger<BedrockClient>
             writer.WriteStartObject();
             writer.WriteString("anthropic_version", "bedrock-2023-05-31");
             writer.WriteNumber("max_tokens", MaxTokens);
-
-            // System prompt — cached.
+            writer.WriteNumber("temperature", Temperature);
             writer.WriteStartArray("system");
             writer.WriteStartObject();
             writer.WriteString("type", "text");
@@ -74,8 +74,6 @@ public class BedrockClient(IAmazonBedrockRuntime bedrock, ILogger<BedrockClient>
             writer.WriteEndObject();
             writer.WriteEndObject();
             writer.WriteEndArray();
-
-            // Tool definition — cached alongside the system prompt.
             writer.WriteStartArray("tools");
             writer.WriteStartObject();
             writer.WriteString("name", toolName);
@@ -90,14 +88,10 @@ public class BedrockClient(IAmazonBedrockRuntime bedrock, ILogger<BedrockClient>
             writer.WriteEndObject();
             writer.WriteEndObject();
             writer.WriteEndArray();
-
-            // Force the model to call our tool.
             writer.WriteStartObject("tool_choice");
             writer.WriteString("type", "tool");
             writer.WriteString("name", toolName);
             writer.WriteEndObject();
-
-            // User message: images first, then prompt text.
             writer.WriteStartArray("messages");
             writer.WriteStartObject();
             writer.WriteString("role", "user");

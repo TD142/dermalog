@@ -30,7 +30,10 @@ public class PhotoComparisonService(
         + "'redness less pronounced'). NEVER make medical claims, diagnoses, or treatment "
         + "recommendations. Focus on observable visual changes: redness, dryness, area size, "
         + "visible texture or scaling. If a feature is hard to assess from the images "
-        + "(lighting, angle, partial occlusion), say so honestly rather than guessing.";
+        + "(lighting, angle, partial occlusion), say so honestly rather than guessing. "
+        + "If the two photographs appear essentially identical, or you cannot identify a "
+        + "clearly visible difference, say so plainly and set the trend to 'similar' — never "
+        + "invent, infer, or exaggerate changes that are not clearly visible in the images.";
 
     private const string ToolDescription =
         "Submit your structured observational comparison of the two photographs.";
