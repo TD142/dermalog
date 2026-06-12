@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Camera, GitCompare, House, Images } from "lucide-react-native";
+import { Camera, GitCompare, House, Images, NotebookPen } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const homeIcon = ({ color }: { color: string }) => (
@@ -16,6 +16,10 @@ const captureIcon = ({ color }: { color: string }) => (
 
 const compareIcon = ({ color }: { color: string }) => (
   <GitCompare color={color} size={28} strokeWidth={1.5} />
+);
+
+const journalIcon = ({ color }: { color: string }) => (
+  <NotebookPen color={color} size={28} strokeWidth={1.5} />
 );
 
 const TabsLayout = () => {
@@ -44,6 +48,10 @@ const TabsLayout = () => {
       <Tabs.Screen
         name="capture"
         options={{ title: "Capture", tabBarIcon: captureIcon }}
+      />
+      <Tabs.Screen
+        name="journal"
+        options={{ title: "Journal", tabBarIcon: journalIcon }}
       />
       <Tabs.Screen
         name="compare"

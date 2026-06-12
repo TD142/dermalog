@@ -20,6 +20,7 @@ public abstract class IntegrationTestBase : IClassFixture<DermalogAppFactory>, I
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DermalogDbContext>();
         await db.Database.MigrateAsync();
+        db.JournalEntries.RemoveRange(db.JournalEntries);
         db.Insights.RemoveRange(db.Insights);
         db.Comparisons.RemoveRange(db.Comparisons);
         db.Photos.RemoveRange(db.Photos);
